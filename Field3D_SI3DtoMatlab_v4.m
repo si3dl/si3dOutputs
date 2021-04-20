@@ -54,23 +54,23 @@ ticT = tic;
 % ----------------------- USER SECTION START-------------------------------
 %% Load data and define variables
 root = 'S:\';
-SimName = 'LakeTahoe_R1';
+SimName = 'L50B50_H100_W0.5_N0.006694_f40_0.25Ti';
 Pathfilelayer = [root,'si3D\',SimName];
 Pathfile = [root,'si3D\',SimName];
 PathSave = [root,'\si3D\',SimName,'\Paraview\'];
 Path_Bathy = 'G:\My Drive\Lake_Tahoe\Projects\Upwelling_3DModel\Bathymetry';
 FileName3D = 'ptrack_hydro.bnr';
 PlaneName = 'plane_2';
-StartDate = '2018-05-26 00:00:00';
+StartDate = '2018-01-01 00:00:00';
 outputFile = 'si3D';
 
 % Please define dx for the numerical simulation
-dx = 100; % [m]
+dx = 200; % [m]
 % Please define depth of Lake H
-H = 501;
+H = 100.5;
 % Please define if dz is constant or variable in the simulation
-DeltaZ = 'variable';
-dz = 0.25;                         % [m] Only needed if DeltaZ is constant
+DeltaZ = 'constant';
+dz = 1;                         % [m] Only needed if DeltaZ is constant
 FileNameZ = 'si3d_layer.txt';   % [m] Only needed if DeltaZ is variable
 
 % Please define the dt that the simulation used
@@ -210,7 +210,7 @@ for count = 1:n_frames+1
                     idata = zp == Layer;
                     zp = -Depth(idata);
                 case 'constant'
-                    zp = -zp*ddz;
+                    zp = -(zp-2)*ddz;
             end
             xp = xg(1,:,1)'*dx;
             yp = yg(:,1,1)*dx;
@@ -314,7 +314,7 @@ for count = 1:n_frames+1
         tic1 = tic;
         cd(PathSave)
         vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
-            'structured_grid',xgf,ygf,zgf,'vectors','U(m/s)',uv,vv,wv,...
+            'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
             'scalars','T(C)',Tv,'scalars','l(m)',lv,'scalars','Dv(m2/s)',Dvv,...
             'scalars','TKE(m2/s2)',TKEv,'scalars','ml(m)',mlv,...
             'scalars','kh(m2/s)',khv,'scalars','Av(m2/s)',Avv,'precision','6','binary')
