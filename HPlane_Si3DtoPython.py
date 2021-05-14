@@ -91,7 +91,7 @@ def HPlane_Si3dToPython(Plane,dx,SimPath):
         else:
             n_frames = count - 1
             break
-    print('No of Frames = ',n_frames)
+    # print('No of Frames = ',n_frames)
     years = year.astype(int)
     months = month.astype(int)
     days = day.astype(int)
@@ -152,7 +152,7 @@ def HPlane_Si3dToPython(Plane,dx,SimPath):
             Azg[j,x[dum]-2,frame] = Az_vect[dum]
             lg[j,x[dum]-2,frame] = l_vect[dum]
             del dum
-            
+
     del dum1, dum2, dum3, dum4, dum5, dum6
 
     output = struct()
