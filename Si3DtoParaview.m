@@ -1,3 +1,4 @@
+function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb)
 % -------------------------------------------------------------------------
 % This script uses the binary files generated from the SI3D simulations for
 % 3D outputs and saves the data as matlab structures. The script also has
@@ -46,43 +47,18 @@
 % Author: Sergio Valbuena
 % Date: 05-12-2020
 
-clear variables
-close all
-clc
-ticT = tic;
-
 % ----------------------- USER SECTION START-------------------------------
-%% Load data and define variables
-root = 'S:\';
-SimName = 'L50B50_H100_W0.5_N0.006694_f40_0.25Ti';
-Pathfilelayer = [root,'si3D\',SimName];
-Pathfile = [root,'si3D\',SimName];
-PathSave = [root,'\si3D\',SimName,'\Paraview\'];
-Path_Bathy = 'G:\My Drive\Lake_Tahoe\Projects\Upwelling_3DModel\Bathymetry';
 FileName3D = 'ptrack_hydro.bnr';
 PlaneName = 'plane_2';
-StartDate = '2018-01-01 00:00:00';
 outputFile = 'si3D';
-
-% Please define dx for the numerical simulation
-dx = 200; % [m]
-% Please define depth of Lake H
-H = 100.5;
-% Please define if dz is constant or variable in the simulation
-DeltaZ = 'constant';
-dz = 1;                         % [m] Only needed if DeltaZ is constant
 FileNameZ = 'si3d_layer.txt';   % [m] Only needed if DeltaZ is variable
-
-% Please define the dt that the simulation used
-% 3D files with lags from the starting of the simulation is not developed yet.
-dt = 10;        % [s] Time step in seconds
 
 % ---------------------- USER SECTION END --------------------------------
 % --------------------  CODE SECTION START -------------------------------
 %% Definition of depths and horizontal dimensions
 switch DeltaZ
     case 'variable'
-        cd(Pathfilelayer)
+        cd(Pathfile)
         M = dlmread(FileNameZ,'',5,0);
         Layer = M(:,1);
         Depth = M(:,2);
@@ -104,8 +80,8 @@ fprintf(fidPV,'%s\n',' 	"files" : [');
 cd(Pathfile)
 fid3D = fopen(FileName3D);
 fidPL = fopen(PlaneName);
-dum3D1 = fread(fid3D,1,'int32');
-dumPL1 = fread(fidPL,1,'int32');
+fread(fid3D,1,'int32');
+fread(fidPL,1,'int32');
 n_frames3D = fread(fid3D,1,'int32');
 n_framesPL = fread(fidPL,1,'int32');
 if n_frames3D ~= n_framesPL
@@ -113,15 +89,15 @@ if n_frames3D ~= n_framesPL
 elseif n_frames3D == n_framesPL
     n_frames = n_frames3D;
 end
-dumPL2 = fread(fidPL,1,'int32');
-dumPL3 = fread(fidPL,1,'int32');
+fread(fidPL,1,'int32');
+fread(fidPL,1,'int32');
 ipointsPL = fread(fidPL,1,'int32');
-dumPL4 = fread(fidPL,1,'int32');
+fread(fidPL,1,'int32');
 
-dum3D2 = fread(fid3D,1,'int32');
-dum3D3 = fread(fid3D,1,'int32');
+fread(fid3D,1,'int32');
+fread(fid3D,1,'int32');
 ipoints3D = fread(fid3D,1,'int32');
-dum3D4 = fread(fid3D,1,'int32');
+fread(fid3D,1,'int32');
 
 istep = zeros(n_frames,1);
 year1 = zeros(n_frames,1);
@@ -129,22 +105,10 @@ month1 = zeros(n_frames,1);
 day1 = zeros(n_frames,1);
 hour1 = zeros(n_frames,1);
 
-h = zeros(ipoints3D,1);
-u = zeros(ipoints3D,1);
-v = zeros(ipoints3D,1);
-w = zeros(ipoints3D,1);
-Dv = zeros(ipoints3D,1);
-T = zeros(ipoints3D,1);
-q2 = zeros(ipoints3D,1);
-kh = zeros(ipoints3D,1);
-q2l = zeros(ipoints3D,1);
-s = zeros(ipointsPL,1);
-
-
-tic;
+ticT = tic;
 for count = 1:n_frames+1
-    dum3D5 = fread(fid3D,1,'int32');
-    dumPL5 = fread(fidPL,1,'int32');
+    fread(fid3D,1,'int32');
+    fread(fidPL,1,'int32');
     st = feof(fid3D);
     if (st == 0)
         istep(count)=fread(fid3D,1,'int32');
@@ -152,18 +116,18 @@ for count = 1:n_frames+1
         month1(count)=fread(fid3D,1,'int32');
         day1(count)=fread(fid3D,1,'int32');
         hour1(count)=fread(fid3D,1,'float32');
-        dumPL6=fread(fidPL,1,'int32');
-        dumPL7=fread(fidPL,1,'int32');
-        dumPL8=fread(fidPL,1,'int32');
-        dumPL9=fread(fidPL,1,'int32');
-        dumPL10=fread(fidPL,1,'float32');
+        fread(fidPL,1,'int32');
+        fread(fidPL,1,'int32');
+        fread(fidPL,1,'int32');
+        fread(fidPL,1,'int32');
+        fread(fidPL,1,'float32');
         % ... Read all data for present time slice
         if (count == 1)
             out_array3D=fread(fid3D,13*ipoints3D,'float32');
             x = out_array3D(1:13:length(out_array3D)-12);
             y = out_array3D(2:13:length(out_array3D)-11);
             z = out_array3D(3:13:length(out_array3D)-10);
-            h = out_array3D(4:13:length(out_array3D)-9);
+            %             h = out_array3D(4:13:length(out_array3D)-9);
             u = out_array3D(5:13:length(out_array3D)-8);
             v = out_array3D(6:13:length(out_array3D)-7);
             w = out_array3D(7:13:length(out_array3D)-6);
@@ -174,14 +138,9 @@ for count = 1:n_frames+1
             kh = out_array3D(12:13:length(out_array3D)-1);
             Av = out_array3D(13:13:length(out_array3D));
             
-            out_arrayPL=fread(fidPL,8*ipointsPL,'float32');
+            out_arrayPL = fread(fidPL,8*ipointsPL,'float32');
             dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
             dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
-            dumPLu = out_arrayPL(3:8:length(out_arrayPL)-5);
-            dumPLv = out_arrayPL(4:8:length(out_arrayPL)-4);
-            dumPLw = out_arrayPL(5:8:length(out_arrayPL)-3);
-            dumPLT = out_arrayPL(6:8:length(out_arrayPL)-2);
-            dumPLAz = out_arrayPL(7:8:length(out_arrayPL)-1);
             s = out_arrayPL(8:8:length(out_arrayPL));
             
             %% Code generator
@@ -217,13 +176,10 @@ for count = 1:n_frames+1
             % To create the 3D domain with the real dimensions of the
             % structured grid
             [xgf,ygf,zgf] = meshgrid(xp,yp,zp);
-            [m1,m2,m3] = size(xgf);
             clear xp yp zp xg yg zg
             
             
             % To create code for the surface plane
-            [xp,yp] = meshgrid(min(dumPLx):max(dumPLx),min(dumPLy):max(dumPLy));
-            [m1p,m2p] = size(xp);
             coord_simPL = [dumPLx,dumPLy];
             codePL = num2str(coord_simPL);
             codecellPL = cellstr(codePL);
@@ -248,8 +204,8 @@ for count = 1:n_frames+1
             codex = regexprep(codecellx,'\s+','A');
             codev = regexprep(codecellv,'\s+','A');
             
-            [a,icodev,icodex] = intersect(codev,codex,'sorted');
-            [b,icodevPL,icodexPL] = intersect(codev,codePL,'sorted');
+            [~,icodev,icodex] = intersect(codev,codex,'sorted');
+            [~,icodevPL,icodexPL] = intersect(codev,codePL,'sorted');
             sum1 = length(icodev);
             sum2 = length(icodex);
             clearvars codecellx codecellv codev codex
@@ -260,7 +216,6 @@ for count = 1:n_frames+1
             end
         else
             out_array3D=fread(fid3D,10*ipoints3D,'float32');
-            h = out_array3D(1:10:length(out_array3D)-9);
             u = out_array3D(2:10:length(out_array3D)-8);
             v = out_array3D(3:10:length(out_array3D)-7);
             w = out_array3D(4:10:length(out_array3D)-6);
@@ -272,18 +227,13 @@ for count = 1:n_frames+1
             Av = out_array3D(10:10:length(out_array3D));
             
             out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
-            dumPLu = out_arrayPL(1:6:length(out_arrayPL)-5);
-            dumPLv = out_arrayPL(2:6:length(out_arrayPL)-4);
-            dumPLw = out_arrayPL(3:6:length(out_arrayPL)-3);
-            dumPLT = out_arrayPL(4:6:length(out_arrayPL)-2);
-            dumPLAz = out_arrayPL(5:6:length(out_arrayPL)-1);
             s = out_arrayPL(6:6:length(out_arrayPL));
         end
         TKE = q2./2; % Turbulent Kinectic Energy
         ml = q2l./q2; % Mixing macroscale
         
-        dum3D6 = fread(fid3D,1,'int32');
-        dumPL11 = fread(fidPL,1,'int32');
+        fread(fid3D,1,'int32');
+        fread(fidPL,1,'int32');
         clear out_arrayPL out_array3D;
         
         %% Paraview file creation .vtk
@@ -313,12 +263,20 @@ for count = 1:n_frames+1
         
         tic1 = tic;
         cd(PathSave)
-        vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
-            'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
-            'scalars','T(C)',Tv,'scalars','l(m)',lv,'scalars','Dv(m2/s)',Dvv,...
-            'scalars','TKE(m2/s2)',TKEv,'scalars','ml(m)',mlv,...
-            'scalars','kh(m2/s)',khv,'scalars','Av(m2/s)',Avv,'precision','6','binary')
-        disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])      
+        if iTurb == 1
+            vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
+                'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
+                'scalars','T(C)',Tv,'scalars','l(m)',lv,'scalars','Dv(m2/s)',Dvv,...
+                'scalars','TKE(m2/s2)',TKEv,'scalars','ml(m)',mlv,...
+                'scalars','kh(m2/s)',khv,'scalars','Av(m2/s)',Avv,'precision','6','binary')
+            disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])
+        elseif iTurb == 0
+            vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
+                'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
+                'scalars','T(C)',Tv,'scalars','l(m)',lv,'precision','6','binary')
+            disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])
+        end
+        
         if count == n_frames + 1
             fprintf(fidPV,'%s\n',['		{ "name" : "',outputFile,'_',num2str((istep(count))*dt/3600),'.vtk",',' "time" : ',num2str((istep(count))*dt),'}']);
         else
@@ -333,6 +291,23 @@ end
 fclose(fid3D);
 fclose(fidPL);
 
+%%
+% if n_frames == count -1
+%     cd(PathSave)
+%     fixfilelines = fgetl(fidPV);
+%     line = fixfilelines(end-3);
+%     linemodified = strip(line,'right',',');
+%     fixfilelines(end-3) = linemodified;
+%     
+%     
+%     
+%     
+% end
+
+fprintf(fidPV,'%s\n','	]');
+fprintf(fidPV,'%s\n','}');
+fclose(fidPV);
+
 %% Creation of paraview reference file
 
 cd(PathSave)
@@ -345,11 +320,7 @@ ParaviewRef = table(Id,istep.*dt,Date,DateStr);
 ParaviewRef.Properties.VariableNames = {'Id','Seconds','Date','DateStr'};
 writetable(ParaviewRef,'ParaviewRef.txt','Delimiter','tab')
 
-fprintf(fidPV,'%s\n','	]');
-fprintf(fidPV,'%s\n','}');
-fclose(fidPV);
-
-
 disp(['Time needed to read the binary file from SI3D and create paraview files is ',num2str(toc),' seconds'])
 
 disp(['Total time needed to create all the files requested is ',num2str(toc(ticT)/60),' minutes'])
+end
