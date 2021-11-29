@@ -36,7 +36,7 @@ def is_eof(f):
     f.seek(cur, os.SEEK_SET)
     return cur == end
 
-def NodeProfles_si3DToPython(file,TimeEndSim,ipt,ntracer,startDate):
+def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     TimeEndSimhrs = TimeEndSim/60/60
     fid = open(file,'r+')
     headerline = fid.readline()
@@ -45,7 +45,7 @@ def NodeProfles_si3DToPython(file,TimeEndSim,ipt,ntracer,startDate):
     im = int(float(line0[4:7]))
     jm = int(float(line0[13:16]))
     km = int(float(line0[23:26]))
-    dt = int(float(line0[33:38]))
+    # dt = int(float(line0[33:38]))
     dtout = dt*ipt/3600
     # hs = float(line0[49:55])
     # ddz = float(line0[64:69])
