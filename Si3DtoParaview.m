@@ -1,10 +1,8 @@
-function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb)
+function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf)
 % -------------------------------------------------------------------------
 % This script uses the binary files generated from the SI3D simulations for
-% 3D outputs and saves the data as matlab structures. The script also has
-% the capability of creating .vtk files to visualize the results in
-% ParaView, and it finally includes a flag in case it is desired to have 3D
-% plots in Matlab as well. It was used previous codes created by Alicia Cortes
+% 3D outputs and saves the data as vtk files to visualize the results in
+% ParaView. It was used previous codes created by Alicia Cortes
 % and Francisco Rueda and the script uses a vtkwrite function created following
 % submission by  William Thielicke and David Gingras.
 
@@ -23,29 +21,29 @@ function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,i
 % Version 4: The code was modified for the newest version of si3D where the
 % 3D output has the turbulent variables. This version not longer considers
 % the plot of matlab outputs and focuses only in created files.
+% Version 5: The code was modified to include the cases from SI3D when
+% turbulence parameters are either saved or not. It also includes the new
+% formulation to save 3D files and surface planes from a time step
+% different from 0.
 
 % NOTES:
 
 % 1. vtkwrite function is needed IF Paraview output is desired. This script
 % will run the section where .vtk files are created
 
-% 2. The resulting matlab data will be squeezed vectors that are the
-% elements of a 3D domain of size m1,m2,m3.
-
-% 3. The paraview files will be named with the format 'si3D_xxx.vtk', where
+% 2. The paraview files will be named with the format 'si3D_xxx.vtk', where
 % the xxx will be numerical values representing the hours after the
 % simulation started.
 
-% 4. Please consider that the more positive flags the user activate, the
-% code will require more RAM and it is possible that it crashes due to
-% memory limitations. If RAM memory is limited, it is recommended to run
-% one flag at a time.
+% 3. It is imperative that Si3D was run using the same values for iht and
+% ipxml. It is also imperative that the run was done using the same itspfh
+% and itspf parameters from the input file.
 
 % 5. It is recommended to run the code from a text editor for less memory
 % consumption.
 
 % Author: Sergio Valbuena
-% Date: 05-12-2020
+% Date: 02-12-2022
 
 % ----------------------- USER SECTION START-------------------------------
 FileName3D = 'ptrack_hydro.bnr';
@@ -99,6 +97,12 @@ fread(fid3D,1,'int32');
 ipoints3D = fread(fid3D,1,'int32');
 fread(fid3D,1,'int32');
 
+if itspf == 0
+    n_frames = n_frames + 1;
+elseif itspf ~= 0
+    n_frames = n_frames + 2;
+end
+
 istep = zeros(n_frames,1);
 year1 = zeros(n_frames,1);
 month1 = zeros(n_frames,1);
@@ -106,7 +110,7 @@ day1 = zeros(n_frames,1);
 hour1 = zeros(n_frames,1);
 
 ticT = tic;
-for count = 1:n_frames+1
+for count = 1:n_frames
     fread(fid3D,1,'int32');
     fread(fidPL,1,'int32');
     st = feof(fid3D);
@@ -123,25 +127,43 @@ for count = 1:n_frames+1
         fread(fidPL,1,'float32');
         % ... Read all data for present time slice
         if (count == 1)
-            out_array3D=fread(fid3D,13*ipoints3D,'float32');
-            x = out_array3D(1:13:length(out_array3D)-12);
-            y = out_array3D(2:13:length(out_array3D)-11);
-            z = out_array3D(3:13:length(out_array3D)-10);
-            %             h = out_array3D(4:13:length(out_array3D)-9);
-            u = out_array3D(5:13:length(out_array3D)-8);
-            v = out_array3D(6:13:length(out_array3D)-7);
-            w = out_array3D(7:13:length(out_array3D)-6);
-            Dv = out_array3D(8:13:length(out_array3D)-5);
-            T = out_array3D(9:13:length(out_array3D)-4);
-            q2 = out_array3D(10:13:length(out_array3D)-3);
-            q2l = out_array3D(11:13:length(out_array3D)-2);
-            kh = out_array3D(12:13:length(out_array3D)-1);
-            Av = out_array3D(13:13:length(out_array3D));
-            
-            out_arrayPL = fread(fidPL,8*ipointsPL,'float32');
-            dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
-            dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
-            s = out_arrayPL(8:8:length(out_arrayPL));
+            if (iTurb == 1)
+                out_array3D=fread(fid3D,13*ipoints3D,'float32');
+                x = out_array3D(1:13:length(out_array3D)-12);
+                y = out_array3D(2:13:length(out_array3D)-11);
+                z = out_array3D(3:13:length(out_array3D)-10);
+                %h = out_array3D(4:13:length(out_array3D)-9);
+                u = out_array3D(5:13:length(out_array3D)-8);
+                v = out_array3D(6:13:length(out_array3D)-7);
+                w = out_array3D(7:13:length(out_array3D)-6);
+                Dv = out_array3D(8:13:length(out_array3D)-5);
+                T = out_array3D(9:13:length(out_array3D)-4);
+                q2 = out_array3D(10:13:length(out_array3D)-3);
+                q2l = out_array3D(11:13:length(out_array3D)-2);
+                kh = out_array3D(12:13:length(out_array3D)-1);
+                Av = out_array3D(13:13:length(out_array3D));
+
+                out_arrayPL = fread(fidPL,8*ipointsPL,'float32');
+                dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
+                dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
+                s = out_arrayPL(8:8:length(out_arrayPL));
+            elseif (iTurb == 0)
+                out_array3D=fread(fid3D,9*ipoints3D,'float32');
+                x = out_array3D(1:9:length(out_array3D)-8);
+                y = out_array3D(2:9:length(out_array3D)-7);
+                z = out_array3D(3:9:length(out_array3D)-6);
+                %h = out_array3D(4:13:length(out_array3D)-5);
+                u = out_array3D(5:9:length(out_array3D)-4);
+                v = out_array3D(6:9:length(out_array3D)-3);
+                w = out_array3D(7:9:length(out_array3D)-2);
+                Dv = out_array3D(8:9:length(out_array3D)-1);
+                T = out_array3D(9:9:length(out_array3D));
+
+                out_arrayPL = fread(fidPL,8*ipointsPL,'float32');
+                dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
+                dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
+                s = out_arrayPL(8:8:length(out_arrayPL));
+            end
             
             %% Code generator
             % To select the unique values of the array results that compound
@@ -215,22 +237,38 @@ for count = 1:n_frames+1
                 error('The code generator is not working properly. The lenght of the sum of idata must be the same length as the vectors with the solution of SI3D')
             end
         else
-            out_array3D=fread(fid3D,10*ipoints3D,'float32');
-            u = out_array3D(2:10:length(out_array3D)-8);
-            v = out_array3D(3:10:length(out_array3D)-7);
-            w = out_array3D(4:10:length(out_array3D)-6);
-            Dv = out_array3D(5:10:length(out_array3D)-5);
-            T = out_array3D(6:10:length(out_array3D)-4);
-            q2 = out_array3D(7:10:length(out_array3D)-3);
-            q2l = out_array3D(8:10:length(out_array3D)-2);
-            kh = out_array3D(9:10:length(out_array3D)-1);
-            Av = out_array3D(10:10:length(out_array3D));
-            
-            out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
-            s = out_arrayPL(6:6:length(out_arrayPL));
+            if (iTurb == 1)
+                out_array3D=fread(fid3D,10*ipoints3D,'float32');
+                u = out_array3D(2:10:length(out_array3D)-8);
+                v = out_array3D(3:10:length(out_array3D)-7);
+                w = out_array3D(4:10:length(out_array3D)-6);
+                Dv = out_array3D(5:10:length(out_array3D)-5);
+                T = out_array3D(6:10:length(out_array3D)-4);
+                q2 = out_array3D(7:10:length(out_array3D)-3);
+                q2l = out_array3D(8:10:length(out_array3D)-2);
+                kh = out_array3D(9:10:length(out_array3D)-1);
+                Av = out_array3D(10:10:length(out_array3D));
+
+                out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
+                s = out_arrayPL(6:6:length(out_arrayPL));
+            elseif (iTurb == 0)
+                out_array3D=fread(fid3D,6*ipoints3D,'float32');
+                u = out_array3D(2:6:length(out_array3D)-4);
+                v = out_array3D(3:6:length(out_array3D)-3);
+                w = out_array3D(4:6:length(out_array3D)-2);
+                Dv = out_array3D(5:6:length(out_array3D)-1);
+                T = out_array3D(6:6:length(out_array3D));
+                
+                out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
+                s = out_arrayPL(6:6:length(out_arrayPL));
+            end      
         end
-        TKE = q2./2; % Turbulent Kinectic Energy
-        ml = q2l./q2; % Mixing macroscale
+        
+        if (iTurb == 1)
+            TKE = q2./2; % Turbulent Kinectic Energy
+            ml = q2l./q2; % Mixing macroscale
+        end
+        
         
         fread(fid3D,1,'int32');
         fread(fidPL,1,'int32');
@@ -243,11 +281,6 @@ for count = 1:n_frames+1
         vv = NaN(length(xgf(:)),1);
         wv = NaN(length(xgf(:)),1);
         Tv = NaN(length(xgf(:)),1);
-        Dvv = NaN(length(xgf(:)),1);
-        TKEv = NaN(length(xgf(:)),1);
-        mlv = NaN(length(xgf(:)),1);
-        khv = NaN(length(xgf(:)),1);
-        Avv = NaN(length(xgf(:)),1);
         
         lv(icodev) = sv(icodex);
         lv(icodevPL) = s(icodexPL);
@@ -255,11 +288,20 @@ for count = 1:n_frames+1
         vv(icodev) = v(icodex);
         wv(icodev) = w(icodex);
         Tv(icodev) = T(icodex);
-        Dvv(icodev) = Dv(icodex)./(100^2);
-        TKEv(icodev) = TKE(icodex);
-        mlv(icodev) = ml(icodex);
-        khv(icodev) = kh(icodex);
-        Avv(icodev) = Av(icodex);
+        
+        if iTurb == 1
+            Dvv = NaN(length(xgf(:)),1);
+            TKEv = NaN(length(xgf(:)),1);
+            mlv = NaN(length(xgf(:)),1);
+            khv = NaN(length(xgf(:)),1);
+            Avv = NaN(length(xgf(:)),1);
+        
+            Dvv(icodev) = Dv(icodex)./(100^2);
+            TKEv(icodev) = TKE(icodex);
+            mlv(icodev) = ml(icodex);
+            khv(icodev) = kh(icodex);
+            Avv(icodev) = Av(icodex);
+        end
         
         tic1 = tic;
         cd(PathSave)
@@ -277,7 +319,7 @@ for count = 1:n_frames+1
             disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])
         end
         
-        if count == n_frames + 1
+        if count == n_frames
             fprintf(fidPV,'%s\n',['		{ "name" : "',outputFile,'_',num2str((istep(count))*dt/3600),'.vtk",',' "time" : ',num2str((istep(count))*dt),'}']);
         else
             fprintf(fidPV,'%s\n',['		{ "name" : "',outputFile,'_',num2str((istep(count))*dt/3600),'.vtk",',' "time" : ',num2str((istep(count))*dt),'},']);
