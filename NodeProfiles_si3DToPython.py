@@ -57,15 +57,15 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
 
     del line1, line2, line3, line4, headerline, runNumber, im, jm
 
-    timesim = np.empty(int(TimeEndSim/dt/ipt)+1)
-    h = np.empty(int(TimeEndSim/dt/ipt)+1)
-    z = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    u = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    v = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    w = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    Av = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    Dv = np.empty((km,int(TimeEndSim/dt/ipt)+1))
-    s = np.empty((km,int(TimeEndSim/dt/ipt)+1))
+    timesim = np.empty(int(TimeEndSim/dt/ipt)+1)*np.nan
+    h = np.empty(int(TimeEndSim/dt/ipt)+1)*np.nan
+    z = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    u = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    v = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    w = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    Av = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    Dv = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    s = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
 
     if ntracer == 0:
         # Read first line for surface node at horizontal location (i,j)
@@ -114,8 +114,57 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
 
             del data1, data2
     elif ntracer != 0:
-        print('Needs to be completed')
+        tr = np.empty((km,int(TimeEndSim/dt/ipt)+1,ntracer))*np.nan
+        data1 = np.fromfile(fid, count = 25, sep=' ', dtype=np.float32)
+        timesim[ntime] = data1[0]
+        h[ntime] = data1[2]
+        z[0,ntime] = data1[3]
+        u[0,ntime] = data1[4]
+        v[0,ntime] = data1[5]
+        w[0,ntime] = data1[6]
+        Av[0,ntime] = data1[7]
+        Dv[0,ntime] = data1[8]
+        s[0,ntime] = data1[9]
+        tr[0,ntime,:] = data1[10:10+ntracer]
 
+        # Read reast of rows for initial time t =0
+        data2 = np.fromfile(fid,count = 22*(km-1), sep = ' ', dtype=np.float32)
+        z[1:km,ntime] = data2[0:22*(km-1):22]
+        u[1:km,ntime] = data2[1:22*(km-1):22]
+        v[1:km,ntime] = data2[2:22*(km-1):22]
+        w[1:km,ntime] = data2[3:22*(km-1):22]
+        Av[1:km,ntime] = data2[4:22*(km-1):22]
+        Dv[1:km,ntime] = data2[5:22*(km-1):22]
+        s[1:km,ntime] = data2[6:22*(km-1):22]
+        for i in range(0,ntracer):
+            tr[1:km,ntime,i] = data2[7+i:22*(km-1):22]
+        del data1, data2
+        while (timesim[ntime] + dtout) <= TimeEndSimhrs and is_eof(fid) == False:
+            ntime += 1
+            data1 = np.fromfile(fid, count = 25, sep=' ', dtype=np.float32)
+            timesim[ntime] = data1[0]
+            h[ntime] = data1[2]
+            z[0,ntime] = data1[3]
+            u[0,ntime] = data1[4]
+            v[0,ntime] = data1[5]
+            w[0,ntime] = data1[6]
+            Av[0,ntime] = data1[7]
+            Dv[0,ntime] = data1[8]
+            s[0,ntime] = data1[9]
+            tr[0,ntime,:] = data1[10:10+ntracer]
+
+            data2 = np.fromfile(fid,count = 22*(km-1), sep = ' ', dtype=np.float32)
+            z[1:km,ntime] = data2[0:22*(km-1):22]
+            u[1:km,ntime] = data2[1:22*(km-1):22]
+            v[1:km,ntime] = data2[2:22*(km-1):22]
+            w[1:km,ntime] = data2[3:22*(km-1):22]
+            Av[1:km,ntime] = data2[4:22*(km-1):22]
+            Dv[1:km,ntime] = data2[5:22*(km-1):22]
+            s[1:km,ntime] = data2[6:22*(km-1):22]
+            for i in range(0,ntracer):
+                tr[1:km,ntime,i] = data2[7+i:22*(km-1):22]
+
+            del data1, data2
     fid.close()
 
     # Replacing -99 to NaN values
@@ -127,6 +176,8 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     Dv[Dv == -99] = np.nan
     s[s == -99] = np.nan
     h[h == -99] = np.nan
+    if ntracer != 0:
+        tr[tr == -99] = np.nan
 
     # Creating the dictionary for the node.
     dummy = {}
@@ -134,8 +185,7 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     Deltasec = TimeEndSim
     EndSim = int(Deltasec + dt*ipt)
     step = int(dt*ipt)
-    dummy['TimeDateLocal'] = np.array([startDate + Dt.timedelta(0,t) for t in range(0,EndSim,step)])
-    dummy['z'] = z
+    dummy['DateTimeLocal'] = np.array([startDate + Dt.timedelta(0,t) for t in range(0,EndSim,step)])
     dummy['u'] = u
     dummy['v'] = v
     dummy['w'] = w
@@ -143,6 +193,13 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     dummy['Dv'] = Dv
     dummy['T'] = s
     dummy['h'] = h
-    dummy['comments'] = [['Sim_Time_hrs','Time in hours of the simulation run'],['TimeDateLocal','Date time variable of simulation'],['u','[cm/s] U component of velocity'],['v','[cm/s] V component of velocity'],['w','[cm/s] W component of velocity'],['Av','[cm2/s}'],['Dv','[Cm2/s]'], ['T','[C] Temperature'],['h',' [cm] Surface Level']]
+    dummy['z'] = z
+    
+    if ntracer != 0:
+        dummy['tr'] = tr
+        dummy['comments'] = [['Sim_Time_hrs','Time in hours of the simulation run'],['DateTimeLocal','Date time variable of simulation'],['u','[cm/s] U component of velocity'],['v','[cm/s] V component of velocity'],['w','[cm/s] W component of velocity'],['Av','[cm2/s}'],['Dv','[Cm2/s]'], ['T','[C] Temperature'],['h',' [cm] Surface Level'],
+        ['tr','[g/l] Tracer Concetration']]
+    else:
+        dummy['comments'] = [['Sim_Time_hrs','Time in hours of the simulation run'],['DateTimeLocal','Date time variable of simulation'],['u','[cm/s] U component of velocity'],['v','[cm/s] V component of velocity'],['w','[cm/s] W component of velocity'],['Av','[cm2/s}'],['Dv','[Cm2/s]'], ['T','[C] Temperature'],['h',' [cm] Surface Level']]
 
     return dummy
