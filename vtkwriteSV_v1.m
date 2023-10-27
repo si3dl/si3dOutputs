@@ -85,6 +85,7 @@ switch upper(dataType)
         % Parse remaining argument.
         vidx = find(strcmpi(varargin,'VECTORS'));
         sidx = find(strcmpi(varargin,'SCALARS'));
+
         if vidx~=0
             for ii = 1:length(vidx)
                 title = varargin{vidx(ii)+1};
@@ -103,15 +104,18 @@ switch upper(dataType)
             end
         end
         if sidx~=0
-            for ii = 1:length(sidx)
-                title = varargin{sidx(ii)+1};
+            titles = varargin{sidx + 1};
+            vars = varargin{sidx + 2};
+            for ii = 1:length(titles)
+                title = char(titles{ii});
+                var = vars{ii};
                 fprintf(fid, ['\nSCALARS ', title,' float\n']);
                 fprintf(fid, 'LOOKUP_TABLE default\n');
                 if ~binaryflag
                     spec = ['%0.', precision, 'f '];
-                    fprintf(fid, spec, varargin{ sidx(ii) + 2});
+                    fprintf(fid, spec, var);
                 else
-                    output = reshape(varargin{sidx(ii)+2},1,n_elements);
+                    output = reshape(var,1,n_elements);
                     fwrite(fid, output,'float','b');
                 end
             end

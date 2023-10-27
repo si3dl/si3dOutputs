@@ -4,10 +4,12 @@ clc;
 close all;
 clear variables;
 
-% root = 'S:\si3D\';
+% root = 'S:\si3D\Alicia_Runs\';
 % FileSim = 'si3dTest';
-root = 'G:\My Drive\Lake_Tahoe\Projects\TahoeWarningWebsite\';
-FileSims = {'Turb_0_itspf_0'};
+root = 'S:\si3D\02_ClearLake\00_HgTests_Trials\';
+% FileSims = {'CL_run24p_hydro'};
+FileSims = {'noncohesive-cohesive_1'};
+concTracer = {'SS1(kg/m3)','SS2(kg/m3)'};
 
 %% Code section
 for i = 1:length(FileSims)
@@ -64,13 +66,36 @@ for i = 1:length(FileSims)
     itspf = inputFile(75);
     itspf = char(itspf);
     itspf = str2double(itspf(15:34));
+
+    itspfh = inputFile(64);
+    itspfh = char(itspfh);
+    itspfh = itspfh(15:34);
+    itspfh = str2double(itspfh);
+    itspftr = inputFile(105);
+    itspftr = char(itspftr);
+    itspftr = itspftr(15:34);
+    itspftr = str2double(itspftr);
+
+    nTracer = inputFile(102);
+    nTracer = char(nTracer);
+    nTracer = nTracer(15:34);
+    nTracer = str2double(nTracer);
+
+    if itspf ~= itspfh || itspf ~= itspftr || itspfh ~= itspftr
+        disp('Error the variables itspf and itspfh must be the same')
+        error('If tracers are modeled, itspftr, itspf, and itspfh must be the same')
+    end
+
+    if nTracer > 0
+        if nTracer ~= length(concTracer)
+            error('Number of tracers modeled different from number of units provided as input')
+        end
+    end
     
     %% To generate Paraview files
     if isfile('ptrack_hydro.bnr')
         % File exists.
-        n_frames = Si3DtoParaview(PathFile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf);
-%         cd(PathFile)
-%         delete 'ptrack_hydro.bnr'
+        n_frames = Si3DtoParaview(PathFile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf,nTracer,concTracer);
     else
         disp('Error 3D file was not found')
     end

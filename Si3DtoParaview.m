@@ -1,4 +1,4 @@
-function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf)
+function n_frames = Si3DtoParaview(Pathfile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf,nTracer,concTr)
 % -------------------------------------------------------------------------
 % This script uses the binary files generated from the SI3D simulations for
 % 3D outputs and saves the data as vtk files to visualize the results in
@@ -50,7 +50,7 @@ FileName3D = 'ptrack_hydro.bnr';
 PlaneName = 'plane_2';
 outputFile = 'si3D';
 FileNameZ = 'si3d_layer.txt';   % [m] Only needed if DeltaZ is variable
-
+fileTracer = 'tracer_';
 % ---------------------- USER SECTION END --------------------------------
 % --------------------  CODE SECTION START -------------------------------
 %% Definition of depths and horizontal dimensions
@@ -76,17 +76,15 @@ fprintf(fidPV,'%s\n',' 	"files" : [');
 
 %% Read binary file from SI3D output
 cd(Pathfile)
+
 fid3D = fopen(FileName3D);
 fidPL = fopen(PlaneName);
+
 fread(fid3D,1,'int32');
 fread(fidPL,1,'int32');
 n_frames3D = fread(fid3D,1,'int32');
 n_framesPL = fread(fidPL,1,'int32');
-if n_frames3D ~= n_framesPL
-    error('The number of frames between the surface plane and 3D file are not the same')
-elseif n_frames3D == n_framesPL
-    n_frames = n_frames3D;
-end
+
 fread(fidPL,1,'int32');
 fread(fidPL,1,'int32');
 ipointsPL = fread(fidPL,1,'int32');
@@ -96,6 +94,33 @@ fread(fid3D,1,'int32');
 fread(fid3D,1,'int32');
 ipoints3D = fread(fid3D,1,'int32');
 fread(fid3D,1,'int32');
+
+if nTracer > 0
+    fidTr = NaN(nTracer,1);
+    n_framesTr = NaN(nTracer,1);
+    ipointsTr = NaN(nTracer,1);
+    for tr = 1:nTracer
+        fileNameTr = [fileTracer,num2str(tr)];
+        fidTr(tr) = fopen(fileNameTr);
+        fread(fidTr(tr),1,'int32');
+        n_framesTr(tr) = fread(fidTr(tr),1,'int32');
+        if n_frames3D ~= n_framesPL || n_frames3D ~= n_framesTr(tr)
+            error('The number of frames between the surface plane and 3D file are not the same')
+        elseif n_frames3D == n_framesPL && n_frames3D == n_framesTr(tr)
+            n_frames = n_frames3D;
+        end
+        fread(fidTr(tr),1,'int32');
+        fread(fidTr(tr),1,'int32');
+        ipointsTr(tr) = fread(fidTr(tr),1,'int32');
+        fread(fidTr(tr),1,'int32');
+    end
+else
+    if n_frames3D ~= n_framesPL
+        error('The number of frames between the surface plane and 3D file are not the same')
+    elseif n_frames3D == n_framesPL
+        n_frames = n_frames3D;
+    end
+end
 
 if itspf == 0
     n_frames = n_frames + 1;
@@ -113,8 +138,16 @@ ticT = tic;
 for count = 1:n_frames
     fread(fid3D,1,'int32');
     fread(fidPL,1,'int32');
-    st = feof(fid3D);
-    if (st == 0)
+    st3d = feof(fid3D);
+    stpl = feof(fidPL);
+    sttr = 0;
+    if nTracer > 0
+        for tr = 1:nTracer
+            fread(fidTr(tr),1,'int32');
+            sttr = feof(fidTr(tr));
+        end
+    end
+    if (st3d == 0) || (stpl == 0) || (sttr == 0) 
         istep(count)=fread(fid3D,1,'int32');
         year1(count)=fread(fid3D,1,'int32');
         month1(count)=fread(fid3D,1,'int32');
@@ -125,6 +158,15 @@ for count = 1:n_frames
         fread(fidPL,1,'int32');
         fread(fidPL,1,'int32');
         fread(fidPL,1,'float32');
+        if nTracer > 0
+            for tr = 1:nTracer
+                fread(fidTr(tr),1,'int32');
+                fread(fidTr(tr),1,'int32');
+                fread(fidTr(tr),1,'int32');
+                fread(fidTr(tr),1,'int32');
+                fread(fidTr(tr),1,'int32');
+            end
+        end
         % ... Read all data for present time slice
         if (count == 1)
             if (iTurb == 1)
@@ -147,25 +189,49 @@ for count = 1:n_frames
                 dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
                 dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
                 s = out_arrayPL(8:8:length(out_arrayPL));
+
+                if nTracer > 0
+                    tracerc = NaN(ipointsTr,nTracer);
+                    for i = tr:nTracer
+                        out_arrayTr=fread(fidTr(tr),5*ipoints,'float32');
+                        dumTrx = out_arrayTr(1:5:length(out_arrayTr)-4);
+                        dumTry = out_arrayTr(2:5:length(out_arrayTr)-3);
+                        dumTrz = out_arrayTr(3:5:length(out_arrayTr)-2);
+                        %tracerm(:,count)=out_array(4:5:length(out_array)-1);
+                        tracerc(:,tr)=out_arrayTr(5:5:length(out_arrayTr));
+                    end
+                end
+
             elseif (iTurb == 0)
-                out_array3D=fread(fid3D,9*ipoints3D,'float32');
-                x = out_array3D(1:9:length(out_array3D)-8);
-                y = out_array3D(2:9:length(out_array3D)-7);
-                z = out_array3D(3:9:length(out_array3D)-6);
-                %h = out_array3D(4:9:length(out_array3D)-5);
-                u = out_array3D(5:9:length(out_array3D)-4);
-                v = out_array3D(6:9:length(out_array3D)-3);
-                w = out_array3D(7:9:length(out_array3D)-2);
-                Dv = out_array3D(8:9:length(out_array3D)-1);
-                T = out_array3D(9:9:length(out_array3D));
+                out_array3D=fread(fid3D,8*ipoints3D,'float32');
+                x = out_array3D(1:8:length(out_array3D)-7);
+                y = out_array3D(2:8:length(out_array3D)-6);
+                z = out_array3D(3:8:length(out_array3D)-5);
+                %h = out_array3D(4:9:length(out_array3D)-4);
+                u = out_array3D(5:8:length(out_array3D)-3);
+                v = out_array3D(6:8:length(out_array3D)-2);
+                w = out_array3D(7:8:length(out_array3D)-1);
+                T = out_array3D(8:8:length(out_array3D));
 
                 out_arrayPL = fread(fidPL,8*ipointsPL,'float32');
                 dumPLx = out_arrayPL(1:8:length(out_arrayPL)-7);
                 dumPLy = out_arrayPL(2:8:length(out_arrayPL)-6);
                 s = out_arrayPL(8:8:length(out_arrayPL));
+
+                if nTracer > 0
+                    tracerc = NaN(ipoints3D,nTracer);
+                    for tr = 1:nTracer
+                        out_arrayTr=fread(fidTr(tr),5*ipointsTr(tr),'float32');
+                        dumTrx = out_arrayTr(1:5:length(out_arrayTr)-4);
+                        dumTry = out_arrayTr(2:5:length(out_arrayTr)-3);
+                        dumTrz = out_arrayTr(3:5:length(out_arrayTr)-2);
+                        %tracerm(:,count)=out_array(4:5:length(out_array)-1);
+                        tracerc(:,tr)=out_arrayTr(5:5:length(out_arrayTr));
+                    end
+                end
             end
-            
-            %% Code generator
+
+           %% Code generator
             % To select the unique values of the array results that compound
             % the matrix of the numerical solution
             xmin = min(x);
@@ -173,6 +239,114 @@ for count = 1:n_frames
             ymin = min(y);
             ymax = max(y);
             zp = unique(z);
+
+            %% Adding results of Grad(u,v) = 0
+            idata = y == ymin;
+            filtx = x(idata);
+            filtz = z(idata);
+            idatasum = sum(idata);
+            ynew = [y;(ymin-1)*ones(idatasum,1)];
+            znew = [z;filtz];
+            xnew = [x;filtx];
+            filtu = u(idata);
+            filtv = v(idata);
+            filtw = w(idata);
+            filtT = T(idata);
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(idata,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1
+            end
+
+            if iTurb
+                filtDv = Dv(idata);
+                filtq2 = q2(idata);
+                filtq2l = q2l(idata);
+                filtkh = kh(idata);
+                filtAv = Av(idata);
+                Dv = [Dv;filtDv];
+                Av = [Av;filtAv];
+                q2 = [q2;filtq2];
+                q2l = [q2l;filtq2l];
+                kh = [kh;filtkh];
+            end
+
+            idata = xnew == xmin;
+            filty = ynew(idata);
+            filtz = znew(idata);
+            idatasum = sum(idata);
+            xnew = [xnew;(xmin-1)*ones(idatasum,1)];
+            znew = [znew;filtz];
+            ynew = [ynew;filty];
+            filtu = u(idata);
+            filtv = v(idata);
+            filtw = w(idata);
+            filtT = T(idata);
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(idata,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1
+            end
+
+            if iTurb
+                filtDv = Dv(idata);
+                filtq2 = q2(idata);
+                filtq2l = q2l(idata);
+                filtkh = kh(idata);
+                filtAv = Av(idata);
+                Dv = [Dv;filtDv];
+                Av = [Av;filtAv];
+                q2 = [q2;filtq2];
+                q2l = [q2l;filtq2l];
+                kh = [kh;filtkh];
+            end
+            iz = znew == 2;
+            filtx = xnew(iz);
+            filty = ynew(iz);
+            filtz = znew(iz);
+            filtu = u(iz);
+            filtv = v(iz);
+            filtw = w(iz);
+            filtT = T(iz);
+            xnew = [xnew;filtx];
+            ynew = [ynew;filty];
+            znew = [znew;ones(length(filtz),1)];
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(iz,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1
+            end
+
+            %%
+            xmin = min(xnew);
+            xmax = max(xnew);
+            ymin = min(ynew);
+            ymax = max(ynew);
+            zp = unique(znew);   
             
             % To create the 3D domain for which there is a numerical solution
             [xg,yg,zg] = meshgrid(xmin:xmax,ymin:ymax,zp);
@@ -188,18 +362,20 @@ for count = 1:n_frames
                         Layer(idata) = [];
                         Depth(idata) = [];
                     end
-                    idata = zp == Layer;
-                    zp = -Depth(idata);
+                    zp = -Depth;
                 case 'constant'
-                    zp = -(zp-2)*ddz;
+                    zp = -(zp-1)*ddz;
+%                     zp = [zp;zp(end)-ddz/2];
+%                     zp = sort(zp,'descend');
             end
-            xp = xg(1,:,1)'*dx;
-            yp = yg(:,1,1)*dx;
+            xp = (xg(1,:,1)-1)'*dx;
+            yp = (yg(:,1,1)-1)*dx;
+
             % To create the 3D domain with the real dimensions of the
             % structured grid
             [xgf,ygf,zgf] = meshgrid(xp,yp,zp);
+
             clear xp yp zp xg yg zg
-            
             
             % To create code for the surface plane
             coord_simPL = [dumPLx,dumPLy];
@@ -207,14 +383,14 @@ for count = 1:n_frames
             codecellPL = cellstr(codePL);
             clearvars codePL
             codePL = regexprep(codecellPL,'\s+','A');
-            codePL = strcat(codePL,'A2');
+            codePL = strcat(codePL,'A1');
             
             tic;
             % To create a code that idenfies the indexes of the numerical
             % simulations within the whole domain.
             % The numerical values are converted into strings for code
             % identification.
-            coord_sim = [x,y,z];
+            coord_sim = [xnew,ynew,znew];
             coord_dom = [xv,yv,zv];
             codex = num2str(coord_sim);
             codev = num2str(coord_dom);
@@ -233,7 +409,7 @@ for count = 1:n_frames
             clearvars codecellx codecellv codev codex
             disp(['Time needed to generate the code for indexing data is ',num2str(toc),' seconds'])
             
-            if sum1 ~= length(x) || sum2 ~= length(x)
+            if sum1 ~= length(xnew) || sum2 ~= length(xnew)
                 error('The code generator is not working properly. The lenght of the sum of idata must be the same length as the vectors with the solution of SI3D')
             end
         else
@@ -248,31 +424,149 @@ for count = 1:n_frames
                 q2l = out_array3D(8:10:length(out_array3D)-2);
                 kh = out_array3D(9:10:length(out_array3D)-1);
                 Av = out_array3D(10:10:length(out_array3D));
+                out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
+                s = out_arrayPL(6:6:length(out_arrayPL));
+                if nTracer > 0
+                    for tr = 1:nTracer
+                    out_arrayTr=fread(fidTr(tr),2*ipoints3D,'float32');
+                    %tracerm(:,count)=out_array(4:5:length(out_array)-1);
+                    tracerc(:,tr)=out_arrayTr(2:2:length(out_arrayTr));
+                    end
+                end
 
-                out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
-                s = out_arrayPL(6:6:length(out_arrayPL));
             elseif (iTurb == 0)
-                out_array3D=fread(fid3D,6*ipoints3D,'float32');
-                u = out_array3D(2:6:length(out_array3D)-4);
-                v = out_array3D(3:6:length(out_array3D)-3);
-                w = out_array3D(4:6:length(out_array3D)-2);
-                Dv = out_array3D(5:6:length(out_array3D)-1);
-                T = out_array3D(6:6:length(out_array3D));
-                
+                out_array3D=fread(fid3D,5*ipoints3D,'float32');
+                u = out_array3D(2:5:length(out_array3D)-3);
+                v = out_array3D(3:5:length(out_array3D)-2);
+                w = out_array3D(4:5:length(out_array3D)-1);
+                T = out_array3D(5:5:length(out_array3D));                
                 out_arrayPL=fread(fidPL,6*ipointsPL,'float32');
                 s = out_arrayPL(6:6:length(out_arrayPL));
-            end      
+                if nTracer > 0
+                    for tr = 1:nTracer
+                    out_arrayTr=fread(fidTr(tr),2*ipointsTr(tr),'float32');
+                    %tracerm(:,count)=out_array(1:2:length(out_array)-1);
+                    tracerc(:,tr)=out_arrayTr(2:2:length(out_arrayTr));
+                    end
+                end
+            end
+
+            %% Adding results of Grad(u,v) = 0
+            idata = y == min(y);
+            filtx = x(idata);
+            filtz = z(idata);
+            idatasum = sum(idata);
+            ynew = [y;(min(y)-1)*ones(idatasum,1)];
+            znew = [z;filtz];
+            xnew = [x;filtx];
+            filtu = u(idata);
+            filtv = v(idata);
+            filtw = w(idata);
+            filtT = T(idata);
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(idata,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1
+            end
+
+            if iTurb
+                filtDv = Dv(idata);
+                filtq2 = q2(idata);
+                filtq2l = q2l(idata);
+                filtkh = kh(idata);
+                filtAv = Av(idata);
+                Dv = [Dv;filtDv];
+                Av = [Av;filtAv];
+                q2 = [q2;filtq2];
+                q2l = [q2l;filtq2l];
+                kh = [kh;filtkh];
+            end
+
+            idata = xnew == min(xnew);
+            filty = ynew(idata);
+            filtz = znew(idata);
+            idatasum = sum(idata);
+            xnew = [xnew;(min(xnew)-1)*ones(idatasum,1)];
+            znew = [znew;filtz];
+            ynew = [ynew;filty];
+            filtu = u(idata);
+            filtv = v(idata);
+            filtw = w(idata);
+            filtT = T(idata);
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(idata,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1
+            end
+
+            if iTurb
+                filtDv = Dv(idata);
+                filtq2 = q2(idata);
+                filtq2l = q2l(idata);
+                filtkh = kh(idata);
+                filtAv = Av(idata);
+                Dv = [Dv;filtDv];
+                Av = [Av;filtAv];
+                q2 = [q2;filtq2];
+                q2l = [q2l;filtq2l];
+                kh = [kh;filtkh];
+            end
+
+            iz = znew == 2;
+            filtx = xnew(iz);
+            filty = ynew(iz);
+            filtz = znew(iz);
+            filtu = u(iz);
+            filtv = v(iz);
+            filtw = w(iz);
+            filtT = T(iz);
+            xnew = [xnew;filtx];
+            ynew = [ynew;filty];
+            znew = [znew;1*ones(length(filtz),1)];
+            u = [u;filtu];
+            v = [v;filtv];
+            w = [w;filtw];
+            T = [T;filtT];
+            if nTracer > 0
+                for tr = 1:nTracer
+                    filtTr = tracerc(iz,tr);
+                    tracerc1(:,tr) = [tracerc(:,tr);filtTr];
+                end
+                tracerc = tracerc1;
+                clearvars tracerc1;
+            end
+
         end
         
         if (iTurb == 1)
             TKE = q2./2; % Turbulent Kinectic Energy
             ml = q2l./q2; % Mixing macroscale
         end
-        
-        
+
         fread(fid3D,1,'int32');
         fread(fidPL,1,'int32');
-        clear out_arrayPL out_array3D;
+        if nTracer > 0
+            for tr = 1:nTracer
+                fread(fidTr(tr),1,'int32');
+            end
+        end
+        clear out_arrayPL out_array3D out_arrayTr
         
         %% Paraview file creation .vtk
         lv = NaN(length(xgf(:)),1);
@@ -281,14 +575,21 @@ for count = 1:n_frames
         vv = NaN(length(xgf(:)),1);
         wv = NaN(length(xgf(:)),1);
         Tv = NaN(length(xgf(:)),1);
-        
+           
         lv(icodev) = sv(icodex);
         lv(icodevPL) = s(icodexPL);
         uv(icodev) = u(icodex);
         vv(icodev) = v(icodex);
         wv(icodev) = w(icodex);
         Tv(icodev) = T(icodex);
-        
+
+        if nTracer > 0 
+            conc = NaN(length(xgf(:)),nTracer);
+            for tr = 1:nTracer
+                conc(icodev,tr) = tracerc(icodex,tr);
+            end
+        end
+    
         if iTurb == 1
             Dvv = NaN(length(xgf(:)),1);
             TKEv = NaN(length(xgf(:)),1);
@@ -305,17 +606,33 @@ for count = 1:n_frames
         
         tic1 = tic;
         cd(PathSave)
+
         if iTurb == 1
+            scalarType = {   'T(C)',   'l(m)','Dv(m2/s)','TKE(m2/s2)',  'ml(m)','kh(m2/s)','Av(m2/s)'};
+            varInp =     {       Tv,       lv,       Dvv,        TKEv,      mlv,       khv,       Avv};
+            if nTracer > 0
+                for tr = 1:nTracer
+                    scalarType(end+1) = concTr(tr);
+                    varInp(end+1) = conc(:,tr);
+                end
+            end
             vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
-                'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
-                'scalars','T(C)',Tv,'scalars','l(m)',lv,'scalars','Dv(m2/s)',Dvv,...
-                'scalars','TKE(m2/s2)',TKEv,'scalars','ml(m)',mlv,...
-                'scalars','kh(m2/s)',khv,'scalars','Av(m2/s)',Avv,'precision','6','binary')
+                'structured_grid',xgf,ygf,zgf,'vectors','U(m/s)',uv,vv,wv,...
+                'scalars',scalarType,varInp,'precision','6','binary')
             disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])
         elseif iTurb == 0
+            scalarType = {   'T(C)',   'l(m)'};
+            varInp =     {       Tv,       lv};
+            if nTracer > 0
+                for tr = 1:nTracer
+                    
+                    scalarType{end+1} = concTr(tr);
+                    varInp{end+1} = conc(:,tr);
+                end
+            end
             vtkwriteSV_v1([outputFile,'_',num2str((istep(count))*dt/3600),'.vtk'],...
-                'structured_grid',xgf-dx,ygf-dx,zgf,'vectors','U(m/s)',uv,vv,wv,...
-                'scalars','T(C)',Tv,'scalars','l(m)',lv,'precision','6','binary')
+                'structured_grid',xgf,ygf,zgf,'vectors','U(m/s)',uv,vv,wv,...
+                'scalars',scalarType,varInp,'precision','6','binary')
             disp(['Time frame ',num2str(count),' is ',num2str(toc(tic1)),' seconds'])
         end
         
@@ -324,6 +641,7 @@ for count = 1:n_frames
         else
             fprintf(fidPV,'%s\n',['		{ "name" : "',outputFile,'_',num2str((istep(count))*dt/3600),'.vtk",',' "time" : ',num2str((istep(count))*dt),'},']);
         end
+        clearvars tracerc conc
     else
         n_frames = count-1;
         break
@@ -332,24 +650,16 @@ for count = 1:n_frames
 end
 fclose(fid3D);
 fclose(fidPL);
+if nTracer > 0
+    for tr = 1:nTracer
+        fclose(fidTr(tr));
+    end
+end
 
 %%
-% if n_frames == count -1
-%     cd(PathSave)
-%     fixfilelines = fgetl(fidPV);
-%     line = fixfilelines(end-3);
-%     linemodified = strip(line,'right',',');
-%     fixfilelines(end-3) = linemodified;
-%     
-%     
-%     
-%     
-% end
-
 fprintf(fidPV,'%s\n','	]');
 fprintf(fidPV,'%s\n','}');
 fclose(fidPV);
-
 %% Creation of paraview reference file
 
 cd(PathSave)
