@@ -81,14 +81,16 @@ for i = 1:length(FileSims)
     nTracer = nTracer(15:34);
     nTracer = str2double(nTracer);
 
-    if itspf ~= itspfh || itspf ~= itspftr || itspfh ~= itspftr
-        disp('Error the variables itspf and itspfh must be the same')
-        error('If tracers are modeled, itspftr, itspf, and itspfh must be the same')
-    end
-
     if nTracer > 0
         if nTracer ~= length(concTracer)
             error('Number of tracers modeled different from number of units provided as input')
+        end
+        if itspf ~= itspfh || itspf ~= itspftr || itspfh ~= itspftr
+            error('If tracers are modeled, itspftr, itspf, and itspfh must be the same')
+        end
+    else
+        if itspf ~= itspfh
+            error('Error the variables itspf and itspfh must be the same')
         end
     end
     
