@@ -358,6 +358,7 @@ for count = 1:n_frames
             switch DeltaZ
                 case 'variable'
                     if length(Layer)~= length(zp)
+                        Layer = Layer - 1;
                         idata = ~ismember(Layer,zp);
                         Layer(idata) = [];
                         Depth(idata) = [];
