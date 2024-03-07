@@ -16,7 +16,7 @@
 
 # 3. The function exports:
 #   a. Individual files for each time step saved in the 3D binary file
-#   b. File to load into paraview with the time information, in seconds, of 
+#   b. File to load into paraview with the time information, in seconds, of
 #       each time step. The file name is si3d.pvd
 #   c. File as reference for dates and time in seconds. The file name is ParaviewRef.txt
 
