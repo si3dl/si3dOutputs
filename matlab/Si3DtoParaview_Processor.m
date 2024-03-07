@@ -8,8 +8,8 @@ clear variables;
 % FileSim = 'si3dTest';
 root = 'S:\si3D\02_ClearLake\00_HgTests_Trials\';
 % FileSims = {'CL_run24p_hydro'};
-FileSims = {'noncohesive-cohesive_1'};
-concTracer = {'SS1(kg/m3)','SS2(kg/m3)'};
+FileSims = {'102_HgTest'};
+concTracer = {'Hg0','HgII','MeHg'};
 
 %% Code section
 for i = 1:length(FileSims)
