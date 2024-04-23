@@ -129,8 +129,8 @@ def Si3DtoParaview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, its
     day1 = np.full(n_frames, np.nan)
     hour1 = np.full(n_frames, np.nan)
 
-    beg2 = time.time()
     for n in range(0, n_frames):
+        beg2 = time.time()
         _ = np.fromfile(fid3D, count=1, dtype='int32')
         _ = np.fromfile(fidPL, count=1, dtype='int32')
 
@@ -437,6 +437,7 @@ def Si3DtoParaview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, its
             wv = wv.reshape(np.shape(xgf))
             Tv = Tv.reshape(np.shape(xgf))
             lv = lv.reshape(np.shape(xgf))
+            lv[:, :, 0] = lv[:, :, 1]
 
             nx, ny, nz = np.shape(xgf)
             uc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
@@ -481,17 +482,15 @@ def Si3DtoParaview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, its
 
             # To save data into .vts file for visualization in paraview
             os.chdir(pathsave)
-            scalars_pt = {}
-            scalars_cell = {}
             outputname = outputFile + '_' + str(round(istep[n] * dt / 3600, 2))
             vectors_pt = {'u(m/s)': (uv, vv, wv)}
             vectors_cell = {'u(m/s)': (uc, vc, wc)}
-            scalars_pt.update({'T(C)': Tv, 'l(m)': lv})
-            scalars_cell.update({'T(C)': Tc, 'l(m)': lc})
+            scalars_pt = {'T(C)': Tv, 'l(m)': lv}
+            scalars_cell = {'T(C)': Tc, 'l(m)': lc}
 
             if nTracer > 0:
-                conc = np.full(len(xgf.ravel()), np.nan)
                 for tr in range(0, nTracer):
+                    conc = np.full(len(xgf.ravel()), np.nan)
                     title = concTr[tr]
                     conc[icodev] = tracerc[icodex, tr]
                     tr_C = conc.reshape(np.shape(xgf))

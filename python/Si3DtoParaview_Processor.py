@@ -2,8 +2,10 @@ import os
 from Si3DtoParaview import *
 
 root = 'S:/si3D/02_ClearLake/00_HgTests_Trials/'
-fileSims = ['105_HgTest_2']
+root = 'S:/si3D/Alicia_Runs/'
+fileSims = ['CL_WQ_00']
 concTracer = ['Hg0', 'HgII', 'MeHg']
+concTracer = ['DO', 'PON', 'DON', 'NH4', 'NO3', 'POP', 'DOP', 'PO4', 'POC', 'DOC', 'ALG1']
 
 # Code section
 for i in fileSims:
