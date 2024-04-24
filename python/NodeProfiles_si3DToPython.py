@@ -29,6 +29,8 @@ import numpy as np
 import os
 
 # Definition of variable
+
+
 def is_eof(f):
     cur = f.tell()    # save current position
     f.seek(0, os.SEEK_END)
@@ -36,19 +38,18 @@ def is_eof(f):
     f.seek(cur, os.SEEK_SET)
     return cur == end
 
-def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
-    TimeEndSimhrs = TimeEndSim/60/60
-    fid = open(file,'r+')
+
+def NodeProfles_si3DToPython(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDate):
+    TimeEndSimhrs = TimeEndSim / 60 / 60
+    fid = open(file, 'r+')
     headerline = fid.readline()
     runNumber = fid.readline()
     line0 = fid.readline()
     im = int(float(line0[4:7]))
     jm = int(float(line0[13:16]))
     km = int(float(line0[23:26]))
-    # dt = int(float(line0[33:38]))
-    dtout = dt*ipt/3600
-    # hs = float(line0[49:55])
-    # ddz = float(line0[64:69])
+    km += 1
+    dtout = dt * ipt / 3600
     line1 = fid.readline()
     line2 = fid.readline()
     line3 = fid.readline()
@@ -57,112 +58,114 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
 
     del line1, line2, line3, line4, headerline, runNumber, im, jm
 
-    timesim = np.empty(int(TimeEndSim/dt/ipt)+1)*np.nan
-    h = np.empty(int(TimeEndSim/dt/ipt)+1)*np.nan
-    z = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    u = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    v = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    w = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    Av = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    Dv = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
-    s = np.empty((km,int(TimeEndSim/dt/ipt)+1))*np.nan
+    timesim = np.empty(int(TimeEndSim / dt / ipt) + 1) * np.nan
+    h = np.empty(int(TimeEndSim / dt / ipt) + 1) * np.nan
+    z = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    u = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    v = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    w = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    Av = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    Dv = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
+    s = np.empty((km, int(TimeEndSim / dt / ipt) + 1)) * np.nan
 
     if ntracer == 0:
         # Read first line for surface node at horizontal location (i,j)
-        data1 = np.fromfile(fid, count = 10, sep=' ', dtype=np.float32)
+        data1 = np.fromfile(fid, count=10, sep=' ', dtype=np.float32)
         timesim[ntime] = data1[0]
         h[ntime] = data1[2]
-        z[0,ntime] = data1[3]
-        u[0,ntime] = data1[4]
-        v[0,ntime] = data1[5]
-        w[0,ntime] = data1[6]
-        Av[0,ntime] = data1[7]
-        Dv[0,ntime] = data1[8]
-        s[0,ntime] = data1[9]
+        z[0, ntime] = data1[3]
+        u[0, ntime] = data1[4]
+        v[0, ntime] = data1[5]
+        w[0, ntime] = data1[6]
+        Av[0, ntime] = data1[7]
+        Dv[0, ntime] = data1[8]
+        s[0, ntime] = data1[9]
         # Read reast of rows for initial time t =0
-        data2 = np.fromfile(fid,count = 7*(km-1), sep = ' ', dtype=np.float32)
-        z[1:km,ntime] = data2[0:7*(km-1):7]
-        u[1:km,ntime] = data2[1:7*(km-1):7]
-        v[1:km,ntime] = data2[2:7*(km-1):7]
-        w[1:km,ntime] = data2[3:7*(km-1):7]
-        Av[1:km,ntime] = data2[4:7*(km-1):7]
-        Dv[1:km,ntime] = data2[5:7*(km-1):7]
-        s[1:km,ntime] = data2[6:7*(km-1):7]
+        data2 = np.fromfile(fid, count=7 * (km - 1), sep=' ', dtype=np.float32)
+        z[1:km, ntime] = data2[0:7 * (km - 1):7]
+        u[1:km, ntime] = data2[1:7 * (km - 1):7]
+        v[1:km, ntime] = data2[2:7 * (km - 1):7]
+        w[1:km, ntime] = data2[3:7 * (km - 1):7]
+        Av[1:km, ntime] = data2[4:7 * (km - 1):7]
+        Dv[1:km, ntime] = data2[5:7 * (km - 1):7]
+        s[1:km, ntime] = data2[6:7 * (km - 1):7]
 
         del data1, data2
-        while (timesim[ntime] +dtout) <= TimeEndSimhrs and is_eof(fid) == False:
+        while (timesim[ntime] + dtout) <= TimeEndSimhrs and is_eof(fid) is False:
             ntime += 1
-            data1 = np.fromfile(fid, count = 10, sep=' ', dtype=np.float32)
+            data1 = np.fromfile(fid, count=10, sep=' ', dtype=np.float32)
             timesim[ntime] = data1[0]
             h[ntime] = data1[2]
-            z[0,ntime] = data1[3]
-            u[0,ntime] = data1[4]
-            v[0,ntime] = data1[5]
-            w[0,ntime] = data1[6]
-            Av[0,ntime] = data1[7]
-            Dv[0,ntime] = data1[8]
-            s[0,ntime] = data1[9]
+            z[0, ntime] = data1[3]
+            u[0, ntime] = data1[4]
+            v[0, ntime] = data1[5]
+            w[0, ntime] = data1[6]
+            Av[0, ntime] = data1[7]
+            Dv[0, ntime] = data1[8]
+            s[0, ntime] = data1[9]
 
-            data2 = np.fromfile(fid,count = 7*(km-1), sep = ' ', dtype=np.float32)
-            z[1:km,ntime] = data2[0:7*(km-1):7]
-            u[1:km,ntime] = data2[1:7*(km-1):7]
-            v[1:km,ntime] = data2[2:7*(km-1):7]
-            w[1:km,ntime] = data2[3:7*(km-1):7]
-            Av[1:km,ntime] = data2[4:7*(km-1):7]
-            Dv[1:km,ntime] = data2[5:7*(km-1):7]
-            s[1:km,ntime] = data2[6:7*(km-1):7]
+            data2 = np.fromfile(fid, count=7 * (km - 1), sep=' ', dtype=np.float32)
+            z[1:km, ntime] = data2[0:7 * (km - 1):7]
+            u[1:km, ntime] = data2[1:7 * (km - 1):7]
+            v[1:km, ntime] = data2[2:7 * (km - 1):7]
+            w[1:km, ntime] = data2[3:7 * (km - 1):7]
+            Av[1:km, ntime] = data2[4:7 * (km - 1):7]
+            Dv[1:km, ntime] = data2[5:7 * (km - 1):7]
+            s[1:km, ntime] = data2[6:7 * (km - 1):7]
 
             del data1, data2
     elif ntracer != 0:
-        tr = np.empty((km,int(TimeEndSim/dt/ipt)+1,ntracer))*np.nan
-        data1 = np.fromfile(fid, count = 25, sep=' ', dtype=np.float32)
+        tr = np.empty((km, int(TimeEndSim / dt / ipt) + 1, ntracer)) * np.nan
+        data1 = np.fromfile(fid, count=35, sep=' ', dtype=np.float32)
         timesim[ntime] = data1[0]
         h[ntime] = data1[2]
-        z[0,ntime] = data1[3]
-        u[0,ntime] = data1[4]
-        v[0,ntime] = data1[5]
-        w[0,ntime] = data1[6]
-        Av[0,ntime] = data1[7]
-        Dv[0,ntime] = data1[8]
-        s[0,ntime] = data1[9]
-        tr[0,ntime,:] = data1[10:10+ntracer]
+        z[0, ntime] = data1[3]
+        u[0, ntime] = data1[4]
+        v[0, ntime] = data1[5]
+        w[0, ntime] = data1[6]
+        Av[0, ntime] = data1[7]
+        Dv[0, ntime] = data1[8]
+        s[0, ntime] = data1[9]
+        tr[0, ntime, :] = data1[10:10 + ntracer]
 
-        # Read reast of rows for initial time t =0
-        data2 = np.fromfile(fid,count = 22*(km-1), sep = ' ', dtype=np.float32)
-        z[1:km,ntime] = data2[0:22*(km-1):22]
-        u[1:km,ntime] = data2[1:22*(km-1):22]
-        v[1:km,ntime] = data2[2:22*(km-1):22]
-        w[1:km,ntime] = data2[3:22*(km-1):22]
-        Av[1:km,ntime] = data2[4:22*(km-1):22]
-        Dv[1:km,ntime] = data2[5:22*(km-1):22]
-        s[1:km,ntime] = data2[6:22*(km-1):22]
-        for i in range(0,ntracer):
-            tr[1:km,ntime,i] = data2[7+i:22*(km-1):22]
+        # Read rest of rows for initial time t =0
+        data2 = np.fromfile(fid, count=32 * (km - 1), sep=' ', dtype=np.float32)
+        z[1:km, ntime] = data2[0:32 * (km - 1):32]
+        u[1:km, ntime] = data2[1:32 * (km - 1):32]
+        v[1:km, ntime] = data2[2:32 * (km - 1):32]
+        w[1:km, ntime] = data2[3:32 * (km - 1):32]
+        Av[1:km, ntime] = data2[4:32 * (km - 1):32]
+        Dv[1:km, ntime] = data2[5:32 * (km - 1):32]
+        s[1:km, ntime] = data2[6:32 * (km - 1):32]
+
+        for i in range(0, ntracer):
+            tr[1:km, ntime, i] = data2[7 + i:32 * (km - 1):32]
         del data1, data2
-        while (timesim[ntime] + dtout) <= TimeEndSimhrs and is_eof(fid) == False:
+
+        while (timesim[ntime] + dtout) <= TimeEndSimhrs and is_eof(fid) is False:
             ntime += 1
-            data1 = np.fromfile(fid, count = 25, sep=' ', dtype=np.float32)
+            data1 = np.fromfile(fid, count=35, sep=' ', dtype=np.float32)
             timesim[ntime] = data1[0]
             h[ntime] = data1[2]
-            z[0,ntime] = data1[3]
-            u[0,ntime] = data1[4]
-            v[0,ntime] = data1[5]
-            w[0,ntime] = data1[6]
-            Av[0,ntime] = data1[7]
-            Dv[0,ntime] = data1[8]
-            s[0,ntime] = data1[9]
-            tr[0,ntime,:] = data1[10:10+ntracer]
+            z[0, ntime] = data1[3]
+            u[0, ntime] = data1[4]
+            v[0, ntime] = data1[5]
+            w[0, ntime] = data1[6]
+            Av[0, ntime] = data1[7]
+            Dv[0, ntime] = data1[8]
+            s[0, ntime] = data1[9]
+            tr[0, ntime, :] = data1[10:10 + ntracer]
 
-            data2 = np.fromfile(fid,count = 22*(km-1), sep = ' ', dtype=np.float32)
-            z[1:km,ntime] = data2[0:22*(km-1):22]
-            u[1:km,ntime] = data2[1:22*(km-1):22]
-            v[1:km,ntime] = data2[2:22*(km-1):22]
-            w[1:km,ntime] = data2[3:22*(km-1):22]
-            Av[1:km,ntime] = data2[4:22*(km-1):22]
-            Dv[1:km,ntime] = data2[5:22*(km-1):22]
-            s[1:km,ntime] = data2[6:22*(km-1):22]
-            for i in range(0,ntracer):
-                tr[1:km,ntime,i] = data2[7+i:22*(km-1):22]
+            data2 = np.fromfile(fid, count=32 * (km - 1), sep=' ', dtype=np.float32)
+            z[1:km, ntime] = data2[0:32 * (km - 1):32]
+            u[1:km, ntime] = data2[1:32 * (km - 1):32]
+            v[1:km, ntime] = data2[2:32 * (km - 1):32]
+            w[1:km, ntime] = data2[3:32 * (km - 1):32]
+            Av[1:km, ntime] = data2[4:32 * (km - 1):32]
+            Dv[1:km, ntime] = data2[5:32 * (km - 1):32]
+            s[1:km, ntime] = data2[6:32 * (km - 1):32]
+            for i in range(0, ntracer):
+                tr[1:km, ntime, i] = data2[7 + i:32 * (km - 1):32]
 
             del data1, data2
     fid.close()
@@ -183,9 +186,9 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     dummy = {}
     dummy['TimeSimHrs'] = timesim
     Deltasec = TimeEndSim
-    EndSim = int(Deltasec + dt*ipt)
-    step = int(dt*ipt)
-    dummy['DateTimeLocal'] = np.array([startDate + Dt.timedelta(0,t) for t in range(0,EndSim,step)])
+    EndSim = int(Deltasec + dt * ipt)
+    step = int(dt * ipt)
+    dummy['DateTimeLocal'] = np.array([startDate + Dt.timedelta(0, t) for t in range(0, EndSim, step)])
     dummy['u'] = u
     dummy['v'] = v
     dummy['w'] = w
@@ -194,12 +197,12 @@ def NodeProfles_si3DToPython(file,TimeEndSim,dt,ipt,ntracer,startDate):
     dummy['T'] = s
     dummy['h'] = h
     dummy['z'] = z
-    
-    if ntracer != 0:
-        dummy['tr'] = tr
-        dummy['comments'] = [['Sim_Time_hrs','Time in hours of the simulation run'],['DateTimeLocal','Date time variable of simulation'],['u','[cm/s] U component of velocity'],['v','[cm/s] V component of velocity'],['w','[cm/s] W component of velocity'],['Av','[cm2/s}'],['Dv','[Cm2/s]'], ['T','[C] Temperature'],['h',' [cm] Surface Level'],
-        ['tr','[g/l] Tracer Concetration']]
-    else:
-        dummy['comments'] = [['Sim_Time_hrs','Time in hours of the simulation run'],['DateTimeLocal','Date time variable of simulation'],['u','[cm/s] U component of velocity'],['v','[cm/s] V component of velocity'],['w','[cm/s] W component of velocity'],['Av','[cm2/s}'],['Dv','[Cm2/s]'], ['T','[C] Temperature'],['h',' [cm] Surface Level']]
 
+    if ntracer != 0:
+        for i in range(0, ntracer):
+            tr_name = tracer_list[i]
+            dummy[tr_name] = tr[:, :, i]
+            dummy['comments'] = [['Sim_Time_hrs', 'Time in hours of the simulation run'], ['DateTimeLocal', 'Date time variable of simulation'], ['u', '[cm/s] U component of velocity'], ['v', '[cm/s] V component of velocity'], ['w', '[cm/s] W component of velocity'], ['Av', '[cm2/s}'], ['Dv', '[Cm2/s]'], ['T', '[C] Temperature'], ['h', ' [cm] Surface Level'], ['tr', '[g/l] Tracer Concetration']]
+    else:
+        dummy['comments'] = [['Sim_Time_hrs', 'Time in hours of the simulation run'], ['DateTimeLocal', 'Date time variable of simulation'], ['u', '[cm/s] U component of velocity'], ['v', '[cm/s] V component of velocity'], ['w', '[cm/s] W component of velocity'], ['Av', '[cm2/s}'], ['Dv', '[Cm2/s]'], ['T', '[C] Temperature'], ['h', ' [cm] Surface Level']]
     return dummy
