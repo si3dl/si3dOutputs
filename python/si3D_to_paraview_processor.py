@@ -2,7 +2,7 @@ import os
 from si3D_to_paraview import *
 
 root = 'S:/si3D/02_ClearLake/00_HgTests_Trials/'
-root = '~/si3D/'
+root = 'home/savalma/si3D/'
 fileSims = ['CL_WQ_06']
 concTracer = ['Hg0', 'HgII', 'MeHg']
 concTracer = ['DO', 'PON', 'DON', 'NH4', 'NO3', 'POP', 'DOP', 'PO4', 'POC', 'DOC', 'ALG1']
