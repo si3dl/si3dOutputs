@@ -1,5 +1,5 @@
 import os
-from Si3DtoParaview import *
+from si3D_to_paraview import *
 
 root = 'S:/si3D/02_ClearLake/00_HgTests_Trials/'
 root = '~/si3D/'
@@ -79,6 +79,6 @@ for i in fileSims:
             raise ValueError('Number of tracers modeled different from number of units provided as input')
 
     if os.path.isfile('si3d_3D'):
-        n_frames = Si3DtoParaview(pathfile, pathsave, startDate, deltaZ, dx, dz, dt, iTurb, itspf, nTracer, concTracer)
+        n_frames = si3D_to_paraview(pathfile, pathsave, startDate, deltaZ, dx, dz, dt, iTurb, itspf, nTracer, concTracer)
     else:
         raise ValueError('3D File not Found')

@@ -39,7 +39,7 @@ def is_eof(f):
     return cur == end
 
 
-def NodeProfles_si3DToPython(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDate):
+def node_si3D_to_python(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDate):
     TimeEndSimhrs = TimeEndSim / 60 / 60
     fid = open(file, 'r+')
     headerline = fid.readline()

@@ -39,7 +39,7 @@ def is_eof(f):
     return cur == end
 
 
-def Si3DtoParaview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, itspf, nTracer, concTr):
+def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, itspf, nTracer, concTr):
     # Function to convert SI3D binary files to vtk for ParaView visualization
 
     # Constants
