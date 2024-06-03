@@ -123,7 +123,7 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
     elif itspf != 0:
         n_frames += 2
 
-    istep = np.full(n_frames, np.nan)
+    istep = np.full(n_frames, 0)
     year1 = np.full(n_frames, np.nan)
     month1 = np.full(n_frames, np.nan)
     day1 = np.full(n_frames, np.nan)
@@ -415,7 +415,9 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
                 for tr in range(0, nTracer):
                     _ = np.fromfile(fidTr[tr], count=1, dtype='int32')
 
-            del outarrPL, outarr3D, outarrTr
+            del outarrPL, outarr3D
+            if nTracer > 0:
+                outarrTr
 
             # Paraview file create .vtk
             lv = np.full(len(xgf.ravel()), np.nan)
@@ -438,6 +440,8 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
             Tv = Tv.reshape(np.shape(xgf))
             lv = lv.reshape(np.shape(xgf))
             lv[:, :, 0] = lv[:, :, 1]
+            lv[0, :, :] = lv[1, :, :]
+            lv[:, 0, :] = lv[:, 1, :]
 
             nx, ny, nz = np.shape(xgf)
             uc = np.full((nx - 1, ny - 1, nz - 1), np.nan)

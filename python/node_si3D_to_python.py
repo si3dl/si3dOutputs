@@ -80,7 +80,7 @@ def node_si3D_to_python(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDa
         Av[0, ntime] = data1[7]
         Dv[0, ntime] = data1[8]
         s[0, ntime] = data1[9]
-        # Read reast of rows for initial time t =0
+        # Read rest of rows for initial time t =0
         data2 = np.fromfile(fid, count=7 * (km - 1), sep=' ', dtype=np.float32)
         z[1:km, ntime] = data2[0:7 * (km - 1):7]
         u[1:km, ntime] = data2[1:7 * (km - 1):7]
@@ -202,7 +202,7 @@ def node_si3D_to_python(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDa
         for i in range(0, ntracer):
             tr_name = tracer_list[i]
             dummy[tr_name] = tr[:, :, i]
-            dummy['comments'] = [['Sim_Time_hrs', 'Time in hours of the simulation run'], ['DateTimeLocal', 'Date time variable of simulation'], ['u', '[cm/s] U component of velocity'], ['v', '[cm/s] V component of velocity'], ['w', '[cm/s] W component of velocity'], ['Av', '[cm2/s}'], ['Dv', '[Cm2/s]'], ['T', '[C] Temperature'], ['h', ' [cm] Surface Level'], ['tr', '[g/l] Tracer Concetration']]
+            dummy['comments'] = [['Sim_Time_hrs', 'Time in hours of the simulation run'], ['DateTimeLocal', 'Date time variable of simulation'], ['u', '[cm/s] U component of velocity'], ['v', '[cm/s] V component of velocity'], ['w', '[cm/s] W component of velocity'], ['Av', '[cm2/s}'], ['Dv', '[Cm2/s]'], ['T', '[C] Temperature'], ['h', ' [cm] Surface Level'], ['tr', '[-] Tracer Concetration']]
     else:
         dummy['comments'] = [['Sim_Time_hrs', 'Time in hours of the simulation run'], ['DateTimeLocal', 'Date time variable of simulation'], ['u', '[cm/s] U component of velocity'], ['v', '[cm/s] V component of velocity'], ['w', '[cm/s] W component of velocity'], ['Av', '[cm2/s}'], ['Dv', '[Cm2/s]'], ['T', '[C] Temperature'], ['h', ' [cm] Surface Level']]
     return dummy
