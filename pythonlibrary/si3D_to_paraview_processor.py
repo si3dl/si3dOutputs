@@ -54,21 +54,21 @@ for i in fileSims:
     elif idz == -1:
         deltaZ = 'variable'
     # To obtain iTurb
-    iTurb = lines[75]
+    iTurb = lines[76]
     iTurb = str(iTurb)
     iTurb = int(iTurb[14:34])
     # To obtain output settings
-    itspf = lines[74]
+    itspf = lines[75]
     itspf = str(itspf)
     itspf = int(itspf[14:34])
-    itspfh = lines[63]
+    itspfh = lines[64]
     itspfh = str(itspfh)
     itspfh = int(itspfh[14:34])
-    itspftr = lines[104]
+    itspftr = lines[105]
     itspftr = str(itspftr)
     itspftr = int(itspftr[14:34])
 
-    nTracer = lines[101]
+    nTracer = lines[102]
     nTracer = str(nTracer)
     nTracer = int(nTracer[14:34])
 
