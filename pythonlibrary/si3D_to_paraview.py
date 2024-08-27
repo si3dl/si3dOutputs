@@ -28,8 +28,8 @@ import pandas as pd
 import os
 import time
 from datetime import datetime, timedelta
-from pyevtk.hl import gridToVTK
-
+import vtk
+from vtk.util.numpy_support import numpy_to_vtk
 
 def is_eof(f):
     cur = f.tell()    # save current position
@@ -253,7 +253,7 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
             filtw = w[iy]
             filtT = T[iy]
             # filth = h[iy]
-            # h = h[filth]
+            # h = np.concatenate((h, filth))
             u = np.concatenate((u, filtu))
             v = np.concatenate((v, filtv))
             w = np.concatenate((w, filtw))
@@ -291,7 +291,7 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
             filtw = w[ix]
             filtT = T[ix]
             # filth = h[ix]
-            # h = h[filth]
+            # h = np.concatenate((h, filth))
             u = np.concatenate((u, filtu))
             v = np.concatenate((v, filtv))
             w = np.concatenate((w, filtw))
@@ -328,7 +328,7 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
             filtw = w[iz]
             filtT = T[iz]
             # filth = h[iz]
-            # h = h[filth]
+            # h = np.concatenate((h, filth))
             u = np.concatenate((u, filtu))
             v = np.concatenate((v, filtv))
             w = np.concatenate((w, filtw))
@@ -387,6 +387,10 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
 
                 # To create the 3D domain with the real dimension of the structured grid
                 xgf, ygf, zgf = np.meshgrid(xp, yp, zp)
+                nx, ny, nz = np.shape(xgf)
+                xgf = xgf.ravel(order='C')
+                ygf = ygf.ravel(order='C')
+                zgf = zgf.ravel(order='C')
 
                 del xp, yp, zp, xg, yg, zg
 
@@ -417,7 +421,7 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
 
             del outarrPL, outarr3D
             if nTracer > 0:
-                outarrTr
+                del outarrTr
 
             # Paraview file create .vtk
             lv = np.full(len(xgf.ravel()), np.nan)
@@ -434,27 +438,6 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
             wv[icodev] = w[icodex]
             Tv[icodev] = T[icodex]
 
-            uv = uv.reshape(np.shape(xgf))
-            vv = vv.reshape(np.shape(xgf))
-            wv = wv.reshape(np.shape(xgf))
-            Tv = Tv.reshape(np.shape(xgf))
-            lv = lv.reshape(np.shape(xgf))
-            lv[:, :, 0] = lv[:, :, 1]
-            lv[0, :, :] = lv[1, :, :]
-            lv[:, 0, :] = lv[:, 1, :]
-
-            nx, ny, nz = np.shape(xgf)
-            uc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-            uc[:, :, :] = uv[1:, 1:, 1:]
-            vc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-            vc[:, :, :] = vv[1:, 1:, 1:]
-            wc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-            wc[:, :, :] = wv[1:, 1:, 1:]
-            Tc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-            Tc[:, :, :] = Tv[1:, 1:, 1:]
-            lc = np.random.rand(nx - 1, ny - 1, nz - 1)
-            lc[:, :, :] = lv[1:, 1:, 1:]
-
             if iTurb == 1:
                 Dvv = np.full(len(xgf.ravel()), np.nan)
                 TKEv = np.full(len(xgf.ravel()), np.nan)
@@ -467,54 +450,142 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
                 mlv[icodev] = ml[icodex]
                 khv[icodev] = kh[icodex]
                 Avv[icodev] = Av[icodex]
-                Dvv = Dvv.reshape(np.shape(xgf))
-                TKEv = TKEv.reshape(np.shape(xgf))
-                mlv = mlv.reshape(np.shape(xgf))
-                khv = khv.reshape(np.shape(xgf))
-                Avv = Avv.reshape(np.shape(xgf))
 
-                Dvc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                Dvc[:, :, :] = Dvv[1:, 1:, 1:]
-                TKEc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                TKEc[:, :, :] = TKEv[1:, 1:, 1:]
-                mlc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                mlc[:, :, :] = mlv[1:, 1:, 1:]
-                khc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                khc[:, :, :] = khv[1:, 1:, 1:]
-                Avc = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                Avc[:, :, :] = Av[1:, 1:, 1:]
+            # To convert into float32
+            uv = uv.astype('float32')
+            vv = vv.astype('float32')
+            wv = wv.astype('float32')
+            Tv = Tv.astype('float32')
+            xgf = xgf.astype('float32')
+            ygf = ygf.astype('float32')
+            zgf = zgf.astype('float32')
 
+            data = {'xgf': xgf,
+                    'ygf': ygf,
+                    'zgf': zgf}
+            df = pd.DataFrame(data)
+            df['Tv'] = Tv
+            df['uv'] = uv
+            df['vv'] = vv
+            df['wv'] = wv
+
+            if iTurb == 1:
+                Dvv = Dvv.astype('float32')
+                TKEv = TKEv.astype('float32')
+                mlv = mlv.astype('float32')
+                khv = khv.astype('float32')
+                Avv = Avv.astype('float32')
+                df['Dvv'] = Dvv
+                df['TKEv'] = TKEv
+                df['mlv'] = mlv
+                df['khv'] = khv
+                df['Avv'] = Avv
+            if nTracer > 0:
+                for tr in range(0, nTracer):
+                    title = concTr[tr]
+                    conc = np.full(len(xgf.ravel()), np.nan)
+                    conc[icodev] = tracerc[icodex, tr]
+                    df[title] = conc
+            
+            df = df.sort_values(by=['zgf','xgf','ygf'])
+            df = df.reset_index(drop=True)
+
+            xg = df['xgf'].values
+            yg = df['ygf'].values
+            zg = df['zgf'].values
+            Tv = df['Tv'].values
+            uv = df['uv'].values
+            vv = df['vv'].values
+            wv = df['wv'].values
             # To save data into .vts file for visualization in paraview
             os.chdir(pathsave)
             outputname = outputFile + '_' + str(round(istep[n] * dt / 3600, 2))
-            vectors_pt = {'u(m/s)': (uv, vv, wv)}
-            vectors_cell = {'u(m/s)': (uc, vc, wc)}
-            scalars_pt = {'T(C)': Tv, 'l(m)': lv}
-            scalars_cell = {'T(C)': Tc, 'l(m)': lc}
+            
+            fidPV.write('%s' % '\t\t<DataSet timestep="' + str(istep[n] * dt) + '" file="' + outputname + '.vts"/>\n')
 
+            dims = (nx, ny, nz)
+            points = np.c_[xg, yg, zg]
+            vtk_points = vtk.vtkPoints()
+            vtk_points.SetData(numpy_to_vtk(points, deep=True))
+            grid = vtk.vtkStructuredGrid()
+            grid.SetDimensions(nx, ny, nz)
+            grid.SetPoints(vtk_points)
+
+            T_vtk = numpy_to_vtk(Tv, deep=True)
+            T_vtk.SetName("T(C)")
+            grid.GetPointData().AddArray(T_vtk)
+
+            V = np.column_stack((uv, vv, wv))
+            V = V.flatten()
+            vel = numpy_to_vtk(V, deep=True, array_type=vtk.VTK_FLOAT)
+            V_vtk = vtk.vtkFloatArray()
+            V_vtk.SetNumberOfComponents(3)
+            V_vtk.SetName('u(m/s)')
+            V_vtk.SetArray(vel, len(V), vtk.VTK_FLOAT)
+            grid.GetPointData().AddArray(V_vtk)
+
+            if iTurb == 1:
+                Dv_vtk = numpy_to_vtk(df['Dvv'].values, deep=True)
+                Dv_vtk.SetName('Dv(m2/s)')
+                grid.GetPointData().AddArray(Dv_vtk)
+                TKE_vtk = numpy_to_vtk(df['TKEv'].values, deep=True)
+                TKE_vtk.SetName('TKE(m2/s2)')
+                grid.GetPointData().AddArray(TKE_vtk)
+                ml_vtk = numpy_to_vtk(df['mlv'].values, deep=True)
+                ml_vtk.SetName('ml(m)')
+                grid.GetPointData().AddArray(ml_vtk)
+                kh_vtk = numpy_to_vtk(df['khv'].values, deep=True)
+                kh_vtk.SetName('kh(m2/s)')
+                grid.GetPointData().AddArray(kh_vtk)
+                Av_vtk = numpy_to_vtk(df['Avv'].values, deep=True)
+                Av_vtk.SetName('Av(m2/s)')
+                grid.GetPointData().AddArray(Av_vtk)
             if nTracer > 0:
                 for tr in range(0, nTracer):
-                    conc = np.full(len(xgf.ravel()), np.nan)
                     title = concTr[tr]
-                    conc[icodev] = tracerc[icodex, tr]
-                    tr_C = conc.reshape(np.shape(xgf))
-                    conc_c = np.full((nx - 1, ny - 1, nz - 1), np.nan)
-                    conc_c[:, :, :] = tr_C[1:, 1:, 1:]
-                    scalars_pt.update({title: tr_C})
-                    scalars_cell.update({title: conc_c})
-            if iTurb == 1:
-                scalars_pt.update({'Dv(m2/s)': Dvv, 'TKE(m2/s)': TKEv, 'ml(m)': mlv, 'kh(m2/s)': khv, 'Av(m2/s)': Avv})
-                scalars_cell.update({'Dv(m2/s)': Dvc, 'TKE(m2/s)': TKEc, 'ml(m)': mlc, 'kh(m2/s)': khc, 'Av(m2/s)': Avc})
+                    conc = df[title].values
+                    tr_vtk = numpy_to_vtk(conc, deep=True)
+                    tr_vtk.SetName(title)
+                    grid.GetPointData().AddArray(tr_vtk)
 
-            pointinfo = {}
-            cellinfo = {}
-            pointinfo.update(vectors_pt)
-            pointinfo.update(scalars_pt)
-            cellinfo.update(vectors_cell)
-            cellinfo.update(scalars_cell)
-            gridToVTK(outputname, xgf, ygf, zgf, pointData=pointinfo, cellData=cellinfo)
+            outputname += '.vts'
+            writer = vtk.vtkXMLStructuredGridWriter()
+            writer.SetFileName(outputname)
+            writer.SetInputData(grid)
+            writer.Write()
 
-            fidPV.write('%s' % '\t\t<DataSet timestep="' + str(istep[n] * dt) + '" file="' + outputname + '.vts"/>\n')
+            del df, data
+
+            # To create files using a different library
+
+            # vectors_pt = {'u(m/s)': (uv, vv, wv)}
+            # vectors_cell = {'u(m/s)': (uc, vc, wc)}
+            # scalars_pt = {'T(C)': Tv, 'l(m)': lv}
+            # scalars_cell = {'T(C)': Tc, 'l(m)': lc}
+
+            # if nTracer > 0:
+            #     for tr in range(0, nTracer):
+            #         conc = np.full(len(xgf.ravel()), np.nan)
+            #         title = concTr[tr]
+            #         conc[icodev] = tracerc[icodex, tr]
+            #         tr_C = conc.reshape(np.shape(xgf))
+            #         conc_c = np.full((nx - 1, ny - 1, nz - 1), np.nan)
+            #         conc_c[:, :, :] = tr_C[1:, 1:, 1:]
+            #         scalars_pt.update({title: tr_C})
+            #         scalars_cell.update({title: conc_c})
+            # if iTurb == 1:
+            #     scalars_pt.update({'Dv(m2/s)': Dvv, 'TKE(m2/s)': TKEv, 'ml(m)': mlv, 'kh(m2/s)': khv, 'Av(m2/s)': Avv})
+            #     scalars_cell.update({'Dv(m2/s)': Dvc, 'TKE(m2/s)': TKEc, 'ml(m)': mlc, 'kh(m2/s)': khc, 'Av(m2/s)': Avc})
+
+            # pointinfo = {}
+            # cellinfo = {}
+            # pointinfo.update(vectors_pt)
+            # pointinfo.update(scalars_pt)
+            # cellinfo.update(vectors_cell)
+            # cellinfo.update(scalars_cell)
+            # gridToVTK(outputname, xgf, ygf, zgf, pointData=pointinfo, cellData=cellinfo)
+            # gridToVTK(outputname, xgf, ygf, zgf, cellData=cellinfo)
+            # gridToVTK(outputname, xgf, ygf, zgf, pointData=pointinfo)
 
         else:
             n_frames = n - 1

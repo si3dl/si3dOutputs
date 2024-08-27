@@ -6,10 +6,10 @@ clear variables;
 
 % root = 'S:\si3D\Alicia_Runs\';
 % FileSim = 'si3dTest';
-root = 'S:\si3D\02_ClearLake\00_HgTests_Trials\';
+root = 'S:\si3D\02_ClearLake\00_HgTests\';
 % FileSims = {'CL_run24p_hydro'};
-FileSims = {'102_HgTest'};
-concTracer = {'Hg0','HgII','MeHg'};
+FileSims = {'002_CL'};
+concTracer = {'DO', 'PON', 'DON', 'NH4', 'NO3', 'POP', 'DOP', 'PO4', 'POC', 'DOC', 'ALG1', 'SS1', 'Hg0', 'HgII', 'MeHg'};
 
 %% Code section
 for i = 1:length(FileSims)
@@ -95,7 +95,7 @@ for i = 1:length(FileSims)
     end
     
     %% To generate Paraview files
-    if isfile('ptrack_hydro.bnr')
+    if isfile('si3d_3D')
         % File exists.
         n_frames = Si3DtoParaview(PathFile,PathSave,StartDate,DeltaZ,dx,dz,dt,iTurb,itspf,nTracer,concTracer);
     else
