@@ -185,11 +185,10 @@ def node_si3D_to_python(file, TimeEndSim, dt, ipt, ntracer, tracer_list, startDa
 
     # Creating the dictionary for the node.
     dummy = {}
-    # dummy['TimeSimHrs'] = timesim
     Deltasec = TimeEndSim
     EndSim = int(Deltasec + dt * ipt)
     step = int(dt * ipt)
-    dummy['dateLocal'] = [startDate + Dt.timedelta(0, t) for t in range(0, EndSim, step)]
+    dummy['dateLocal'] = startDate + pd.to_timedelta(timesim, unit='h')
     dummy['dateLocal'] = pd.to_datetime(dummy['dateLocal'])
     dummy['u'] = u
     dummy['v'] = v

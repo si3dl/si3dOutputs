@@ -55,12 +55,13 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
     beg1 = time.time()
 
     # Read Depth information
-    if deltaZ == 'variable':
+    if deltaZ:
         M = np.loadtxt(FileNameZ, skiprows=5)
         layer = M[:, 0]
         depth = M[:, 1]
         depth[depth == -100] = 0  # Adjust as needed
-    elif deltaZ == 'constant':
+        ddz = dz
+    else:
         ddz = dz
     del dz
 
@@ -373,14 +374,11 @@ def si3D_to_paraview(pathfile, pathsave, startdate, deltaZ, dx, dz, dt, iTurb, i
 
                 # To define the actual dimension of the matrix that describes the domain
                 # of the numerical solution including and extra level for the bottom.
-                if deltaZ == 'variable':
-                    if len(layer) != len(zp):
-                        layer += -1
-                        idata = ~np.isin(layer, zp)
-                        layer = layer[~idata]
-                        depth = depth[~idata]
+                if deltaZ:
+                    layer = np.concatenate(([1], layer[:]))
+                    depth = np.concatenate((depth[:], [depth[-1] + ddz]))
                     zp = -depth
-                elif deltaZ == 'constant':
+                else:
                     zp = -(zp - 1) * ddz
                 xp = (xg[0, :, 0] - 1) * dx
                 yp = (yg[:, 0, 0] - 1) * dx
